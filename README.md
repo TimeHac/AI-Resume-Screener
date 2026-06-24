@@ -176,8 +176,3 @@ Data Scientist     0.89      0.91      0.90       100
 - **Frontend:** Vanilla HTML/CSS/JS
 - **Deployment:** HuggingFace Spaces / Gunicorn
 
----
-
-## 📝 License
-
-MIT License — free to use, modify, and distribute.
