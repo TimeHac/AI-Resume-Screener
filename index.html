@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Resume Screener</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #0f0f1a;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    /* Navbar */
+    nav {
+      background: rgba(15,15,26,0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(99,102,241,0.2);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    nav .logo {
+      font-size: 1.4rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #6366f1, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    nav .badge {
+      background: rgba(99,102,241,0.15);
+      border: 1px solid rgba(99,102,241,0.3);
+      color: #a78bfa;
+      font-size: 0.7rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+    nav .github-link {
+      margin-left: auto;
+      color: #a78bfa;
+      text-decoration: none;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+    nav .github-link:hover { opacity: 1; }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 4rem 1rem 2rem;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, #e2e8f0 0%, #a78bfa 60%, #6366f1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+    .hero p {
+      color: #94a3b8;
+      font-size: 1.1rem;
+      max-width: 550px;
+      margin: 0 auto 1.5rem;
+      line-height: 1.6;
+    }
+    .categories {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 0.5rem;
+    }
+    .cat-tag {
+      background: rgba(99,102,241,0.12);
+      border: 1px solid rgba(99,102,241,0.25);
+      color: #a78bfa;
+      font-size: 0.78rem;
+      padding: 0.3rem 0.8rem;
+      border-radius: 999px;
+      font-weight: 500;
+    }
+
+    /* Main card */
+    .container { max-width: 860px; margin: 0 auto; padding: 1rem 1.5rem 4rem; }
+
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 1.25rem;
+      overflow: hidden;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .tab {
+      flex: 1;
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      background: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+    .tab.active {
+      color: #a78bfa;
+      background: rgba(99,102,241,0.08);
+      border-bottom: 2px solid #6366f1;
+    }
+    .tab:hover:not(.active) { color: #cbd5e1; background: rgba(255,255,255,0.03); }
+
+    /* Tab panels */
+    .panel { display: none; padding: 1.75rem; }
+    .panel.active { display: block; }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 0.75rem;
+      color: #e2e8f0;
+      font-size: 0.88rem;
+      padding: 1rem;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+      line-height: 1.6;
+    }
+    textarea:focus { border-color: rgba(99,102,241,0.5); }
+    textarea::placeholder { color: #475569; }
+
+    /* Upload area */
+    .upload-area {
+      border: 2px dashed rgba(99,102,241,0.3);
+      border-radius: 1rem;
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(99,102,241,0.03);
+      position: relative;
+    }
+    .upload-area:hover, .upload-area.dragging {
+      border-color: rgba(99,102,241,0.6);
+      background: rgba(99,102,241,0.07);
+    }
+    .upload-area input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .upload-area p { color: #64748b; font-size: 0.9rem; }
+    .upload-area .file-name { color: #a78bfa; font-weight: 600; margin-top: 0.5rem; font-size: 0.9rem; }
+
+    /* Predict button */
+    .predict-btn {
+      width: 100%;
+      margin-top: 1.25rem;
+      padding: 0.9rem;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      border: none;
+      border-radius: 0.75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .predict-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(99,102,241,0.35); }
+    .predict-btn:active { transform: translateY(0); }
+    .predict-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* Loading spinner */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results */
+    .result-card {
+      margin-top: 1.5rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      display: none;
+    }
+    .result-card.show { display: block; animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .result-icon {
+      width: 52px; height: 52px;
+      border-radius: 0.75rem;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+      background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2));
+      border: 1px solid rgba(99,102,241,0.3);
+      flex-shrink: 0;
+    }
+    .result-category { font-size: 1.4rem; font-weight: 700; color: #e2e8f0; }
+    .result-meta { font-size: 0.82rem; color: #64748b; margin-top: 0.2rem; }
+
+    /* Confidence bar */
+    .confidence-section { margin-bottom: 1.25rem; }
+    .confidence-label {
+      display: flex; justify-content: space-between;
+      font-size: 0.82rem; color: #94a3b8; margin-bottom: 0.5rem;
+    }
+    .confidence-label span:last-child { color: #a78bfa; font-weight: 700; }
+    .bar-bg {
+      background: rgba(255,255,255,0.07);
+      border-radius: 999px;
+      height: 8px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #6366f1, #a78bfa);
+      transition: width 0.8s cubic-bezier(.23,1,.32,1);
+      width: 0%;
+    }
+
+    /* All probs */
+    .all-probs { display: flex; flex-direction: column; gap: 0.6rem; }
+    .prob-row { display: flex; align-items: center; gap: 0.75rem; }
+    .prob-name { font-size: 0.82rem; color: #94a3b8; width: 145px; flex-shrink: 0; }
+    .prob-bar-bg {
+      flex: 1;
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px;
+      height: 6px;
+      overflow: hidden;
+    }
+    .prob-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: rgba(99,102,241,0.5);
+      transition: width 0.8s cubic-bezier(.23,1,.32,1);
+      width: 0%;
+    }
+    .prob-bar-fill.top { background: linear-gradient(90deg, #6366f1, #a78bfa); }
+    .prob-val { font-size: 0.78rem; color: #64748b; width: 42px; text-align: right; flex-shrink: 0; }
+
+    /* Error */
+    .error-box {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+      color: #fca5a5;
+      font-size: 0.88rem;
+      margin-top: 1rem;
+      display: none;
+    }
+    .error-box.show { display: block; animation: fadeIn 0.3s; }
+
+    /* Stats bar */
+    .stats-bar {
+      display: flex;
+      gap: 1.5rem;
+      padding: 1.25rem 1.75rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.02);
+    }
+    .stat { text-align: center; }
+    .stat-val { font-size: 1.3rem; font-weight: 700; color: #a78bfa; }
+    .stat-label { font-size: 0.72rem; color: #64748b; margin-top: 0.1rem; }
+
+    /* Category icons */
+    .cat-icons { "Data Scientist": "🔬", "Web Developer": "🌐", "Software Engineer": "⚙️", "HR": "👥", "Marketing": "📈" }
+
+    @media (max-width: 600px) {
+      .stats-bar { gap: 0.75rem; }
+      .prob-name { width: 110px; font-size: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">⚡ ResumeAI</span>
+  <span class="badge">ML Powered</span>
+  <a class="github-link" href="https://github.com/aashutoshyadav" target="_blank">
+    <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+    GitHub
+  </a>
+</nav>
+
+<div class="hero">
+  <h1>AI Resume Screener</h1>
+  <p>Paste a resume or upload a PDF to instantly classify it into the right job category using NLP & Machine Learning.</p>
+  <div class="categories">
+    <span class="cat-tag">🔬 Data Scientist</span>
+    <span class="cat-tag">🌐 Web Developer</span>
+    <span class="cat-tag">⚙️ Software Engineer</span>
+    <span class="cat-tag">👥 HR</span>
+    <span class="cat-tag">📈 Marketing</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="card">
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-val">~88%</div><div class="stat-label">Accuracy</div></div>
+      <div class="stat"><div class="stat-val">2,400+</div><div class="stat-label">Trained On</div></div>
+      <div class="stat"><div class="stat-val">5</div><div class="stat-label">Categories</div></div>
+      <div class="stat"><div class="stat-val">TF-IDF</div><div class="stat-label">Vectorizer</div></div>
+      <div class="stat"><div class="stat-val">SVM</div><div class="stat-label">Classifier</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('text', this)">✏️ Paste Text</button>
+      <button class="tab" onclick="switchTab('file', this)">📄 Upload File</button>
+    </div>
+
+    <!-- Text Panel -->
+    <div class="panel active" id="panel-text">
+      <label>Resume Text</label>
+      <textarea id="resume-text" placeholder="Paste the resume content here...&#10;&#10;Include skills, experience, education, and job titles for best results."></textarea>
+      <button class="predict-btn" id="btn-text" onclick="predictText()">
+        <span>Analyze Resume</span>
+      </button>
+    </div>
+
+    <!-- File Panel -->
+    <div class="panel" id="panel-file">
+      <label>Upload Resume File</label>
+      <div class="upload-area" id="upload-area">
+        <input type="file" id="file-input" accept=".pdf,.txt" onchange="fileSelected(this)">
+        <div class="upload-icon">☁️</div>
+        <p><strong style="color:#cbd5e1">Click to upload</strong> or drag & drop</p>
+        <p style="margin-top:0.3rem">PDF or TXT · Max 5MB</p>
+        <div class="file-name" id="file-name"></div>
+      </div>
+      <button class="predict-btn" id="btn-file" onclick="predictFile()" disabled>
+        <span>Analyze Resume</span>
+      </button>
+    </div>
+
+    <!-- Error -->
+    <div class="error-box" id="error-box" style="margin: 0 1.75rem 1rem;"></div>
+
+    <!-- Result -->
+    <div class="result-card" id="result-card" style="margin: 0 1.75rem 1.75rem;">
+      <div class="result-header">
+        <div class="result-icon" id="result-icon">🔬</div>
+        <div>
+          <div class="result-category" id="result-category">-</div>
+          <div class="result-meta" id="result-meta">-</div>
+        </div>
+      </div>
+
+      <div class="confidence-section">
+        <div class="confidence-label">
+          <span>Confidence</span>
+          <span id="conf-pct">-</span>
+        </div>
+        <div class="bar-bg"><div class="bar-fill" id="conf-bar"></div></div>
+      </div>
+
+      <div style="font-size:0.82rem;color:#64748b;margin-bottom:0.75rem;">All Category Scores</div>
+      <div class="all-probs" id="all-probs"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const ICONS = {
+    "Data Scientist": "🔬",
+    "Web Developer": "🌐",
+    "Software Engineer": "⚙️",
+    "HR": "👥",
+    "Marketing": "📈"
+  };
+
+  function switchTab(name, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel-' + name).classList.add('active');
+    hideResult(); hideError();
+  }
+
+  function setLoading(btnId, loading) {
+    const btn = document.getElementById(btnId);
+    if (loading) {
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div><span>Analyzing...</span>';
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = '<span>Analyze Resume</span>';
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-box');
+    el.textContent = '⚠ ' + msg;
+    el.classList.add('show');
+  }
+  function hideError() {
+    document.getElementById('error-box').classList.remove('show');
+  }
+  function hideResult() {
+    document.getElementById('result-card').classList.remove('show');
+  }
+
+  function showResult(data) {
+    const icon = ICONS[data.category] || '📄';
+    document.getElementById('result-icon').textContent = icon;
+    document.getElementById('result-category').textContent = data.category;
+    document.getElementById('result-meta').textContent =
+      `${data.word_count} words analyzed · ${data.confidence}% confidence`;
+
+    document.getElementById('conf-pct').textContent = data.confidence + '%';
+    setTimeout(() => {
+      document.getElementById('conf-bar').style.width = data.confidence + '%';
+    }, 50);
+
+    const container = document.getElementById('all-probs');
+    container.innerHTML = '';
+    const probs = data.all_probabilities;
+    const sorted = Object.entries(probs).sort((a,b) => b[1]-a[1]);
+    sorted.forEach(([cat, pct]) => {
+      const isTop = cat === data.category;
+      container.innerHTML += `
+        <div class="prob-row">
+          <div class="prob-name">${ICONS[cat] || '•'} ${cat}</div>
+          <div class="prob-bar-bg">
+            <div class="prob-bar-fill ${isTop ? 'top' : ''}" style="width:0%" data-w="${pct}"></div>
+          </div>
+          <div class="prob-val">${pct}%</div>
+        </div>`;
+    });
+    setTimeout(() => {
+      document.querySelectorAll('.prob-bar-fill').forEach(el => {
+        el.style.width = el.dataset.w + '%';
+      });
+    }, 50);
+
+    document.getElementById('result-card').classList.add('show');
+  }
+
+  async function predictText() {
+    hideError(); hideResult();
+    const text = document.getElementById('resume-text').value.trim();
+    if (!text) { showError('Please paste resume text first.'); return; }
+    setLoading('btn-text', true);
+    try {
+      const res = await fetch('/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resume_text: text })
+      });
+      const data = await res.json();
+      if (data.status === 'success') showResult(data);
+      else showError(data.error || 'Prediction failed.');
+    } catch(e) {
+      showError('Server error. Make sure the Flask app is running.');
+    }
+    setLoading('btn-text', false);
+  }
+
+  let selectedFile = null;
+  function fileSelected(input) {
+    if (input.files.length > 0) {
+      selectedFile = input.files[0];
+      document.getElementById('file-name').textContent = '✓ ' + selectedFile.name;
+      document.getElementById('btn-file').disabled = false;
+    }
+  }
+
+  async function predictFile() {
+    if (!selectedFile) { showError('Please select a file first.'); return; }
+    hideError(); hideResult();
+    setLoading('btn-file', true);
+    try {
+      const form = new FormData();
+      form.append('file', selectedFile);
+      const res = await fetch('/predict', { method: 'POST', body: form });
+      const data = await res.json();
+      if (data.status === 'success') showResult(data);
+      else showError(data.error || 'Prediction failed.');
+    } catch(e) {
+      showError('Server error. Make sure the Flask app is running.');
+    }
+    setLoading('btn-file', false);
+  }
+
+  // Drag & drop
+  const area = document.getElementById('upload-area');
+  area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('dragging'); });
+  area.addEventListener('dragleave', () => area.classList.remove('dragging'));
+  area.addEventListener('drop', e => {
+    e.preventDefault(); area.classList.remove('dragging');
+    const f = e.dataTransfer.files[0];
+    if (f) {
+      selectedFile = f;
+      document.getElementById('file-name').textContent = '✓ ' + f.name;
+      document.getElementById('btn-file').disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
